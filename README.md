@@ -1,6 +1,25 @@
 # Hyper-V and WSL2 Network Fix for Linux Developers
 
-## Hyper-V?  WSL?  What do I do with these?
+## Prerequisites
+
+- You must have "Administrator" privileges on your system to run this script
+- Script tested onyl on Windows 10 21H1 with PowerShell 5 and 7.1
+- The script uses the PowerShell Gallery community module "LoopbackAdapter". This Module is not maintained by Microsoft, and uses external binaries to manage virtual hardware on your system.
+
+## Usage
+
+Start by cloning this repositor, or downloading its contents to your system.  Open a PowerShell prompt in the directory with this script and run:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy Unrestricted
+.\Install-DeveloperFix.ps1
+```
+
+Optionally, you can revert to your original Execution Policy after the installation.  If you care.  You probably shouldn't care, since PowerShell execution policies are a ruse.
+
+## Background information
+
+### Hyper-V?  WSL?  What do I do with these?
 
 Linux developers who choose (or are forced) to use Windows will benefit greatly
 from the use the the Windows Subsystem for Linux, and the Hyper-V virtualization
@@ -9,7 +28,7 @@ such as systems administrators and analysts) to run Linux operating systems, too
 containers quickly and efficiently, while still having access to the broad base of
 Windows productivity tools.
 
-## Great! So what is the problem?
+### Great! So what is the problem?
 
 Unfortunately, these tools often run into problems with corporate use of
 private network ranges, especially when the developer using the system roams
@@ -22,7 +41,7 @@ the Hyper-V and WSL VMs then fail, and sometimes general networking on the host
 Windows system deteriorates as well.  Microsoft does not appear to be interested in
 fixing this common problem.
 
-## So what can I do about that?  Get a Mac?
+### So what can I do about that?  Get a Mac?
 
 Sure, you could get a Mac, or install Ubuntu.  OR... you can just run the
 "Install-DeveloperFix.ps1" script in this repository, and your life will be good again.*
