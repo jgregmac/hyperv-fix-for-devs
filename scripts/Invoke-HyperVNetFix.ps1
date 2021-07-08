@@ -1,3 +1,8 @@
+param (
+    # Name of the dummy adapter used for fixing the Hyper-V network.
+    [string]$AdapterName = "Hyper-V Fix"
+)
+
 $logRoot = Split-Path $script:MyInvocation.MyCommand.Path -Parent
 $logfilepath = Join-Path -Path $logRoot -ChildPath HyperVNetFix.log
 
@@ -8,7 +13,7 @@ if (Test-Path $logfilepath) {
     Remove-Item $logfilepath
 }
 
-Get-NetAdapter -Name "Hyper-V Fix" | Enable-NetAdapter
+Get-NetAdapter -Name $AdapterName | Enable-NetAdapter
 WriteToLogFile "Hyper-V Fix Adapter Enabled."
 
 # Assuming the above steps completed successfully, let's try to start up WSL
@@ -18,7 +23,7 @@ if ( Get-NetIPAddress -IPAddress "172.16.0.1" -ErrorAction SilentlyContinue ) {
     WriteToLogFile "WSL Started."
 }
 
-Get-NetAdapter -Name "Hyper-V Fix" | Disable-NetAdapter -Confirm:$false
+Get-NetAdapter -Name $AdapterName | Disable-NetAdapter -Confirm:$false
 WriteToLogFile "Hyper-V Fix Adapter Disabled."
 
 WriteToLogFile "IP Config after Applying Fix:"

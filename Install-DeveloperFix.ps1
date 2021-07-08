@@ -21,17 +21,41 @@
     algorithm into using a network range of our choosing that we know will not collide
     with our corporate internal private networks.
 #>
+[CmdletBinding()]
+param (
+    # Name of the dummy adapter that will be created.
+    [Parameter()]
+    [string]
+    $AdapterName = "Hyper-V Fix",
 
-# Label, IP, and NetMask to apply to our Loopback adapter.
-# This network should cover the entire range of addresses used for internal private network addressing.
-# Change this to 192.168.0.0/16 if your business uses those addresses.
-[string]$AdapterName = "Hyper-V Fix"
-[string]$LoopbackIP = "172.16.0.1"
-[int]$LoopbackNetLength = 12
+    <#
+      An IP address in the network range used by your organization. 
+      Common values would be:
+      - 172.16.0.1 for class B private networks
+      - 192.168.0.1 for class C private networks
+    #>
+    [Parameter()]
+    [IPAddress]
+    $LoopbackIP = "172.16.0.1",
 
-# Target directory for the startup/shutdown scripts.  Default is a "scripts" directory 
-# under your user profile:
-$ScriptDestination = Join-Path -Path $env:USERPROFILE -ChildPath scripts 
+    <# 
+      The netmask length that covers the entirety of the private network range used 
+      by your organization.
+      Common values would be:
+      - 12 for class B (172.16) private networks
+      - 16 for class C (192.168) private networks
+    #>
+    [Parameter()]
+    [ValidateRange(1,32)]
+    [int]
+    $LoopbackNetLength = 12,
+
+    <# Target directory for the startup/shutdown scripts.  Default is a "scripts" 
+    directory under your user profile. #>
+    [Parameter()]
+    [string]
+    $ScriptDestination = (Join-Path -Path $env:USERPROFILE -ChildPath scripts)
+)
 
 # The installer will create the tasks to run under the account of the user running this
 # installer script.  You could force installation for a specific user by changing these
@@ -67,6 +91,7 @@ $UserSID = ([System.Security.Principal.WindowsIdentity]::GetCurrent()).User.Valu
             ForEach-Object { $_ -replace "USER_ID", $UserName } |
             ForEach-Object { $_ -replace "USER_SID", $UserSID } |
             ForEach-Object { $_ -replace "STARTUP_SCRIPT_PATH", $ScriptDestination } |
+            ForEach-Object { $_ -replace "ADAPTER_NAME", $AdapterName } |
             Set-Content -Path (Join-Path -Path $TaskStage -ChildPath $Leaf) -Force -Confirm:$false;
     }
     # Register the login actions task
@@ -86,12 +111,17 @@ $UserSID = ([System.Security.Principal.WindowsIdentity]::GetCurrent()).User.Valu
     }
     Import-Module LoopbackAdapter
     # Create the Loopback Adapter:
-    if ( -not (Get-LoopbackAdapter -Name $AdapterName -ea SilentlyContinue )) {
-        New-LoopbackAdapter -Name $AdapterName | Out-Null
+    if (Get-NetAdapter -Name $AdapterName -ea SilentlyContinue) {
+        $index = Get-NetAdapter -Name $AdapterName | Select-Object -ExpandProperty ifIndex
+        Enable-NetAdapter -Name $AdapterName -ea SilentlyContinue
+        Remove-NetIPAddress -InterfaceIndex $index -Confirm:$false
+        Remove-LoopbackAdapter -Name $AdapterName -Force
     }
+    New-LoopbackAdapter -Name $AdapterName | Out-Null
     # Assign an IP to the adapter and disable it:
-    if ( -not (Get-NetIPAddress -IPAddress $LoopbackIP) ) {
-        New-NetIPAddress -IPAddress $LoopbackIP -PrefixLength $LoopbackNetLength -InterfaceAlias "$AdapterName" | Out-Null
+    if ( -not (Get-NetIPAddress -IPAddress $LoopbackIP.ToString() -ea SilentlyContinue) ) {
+        New-NetIPAddress -IPAddress $LoopbackIP.ToString() -PrefixLength $LoopbackNetLength `
+            -InterfaceAlias "$AdapterName" | Out-Null
     }
     Disable-NetAdapter -Name $AdapterName -Confirm:$false
 #endregion

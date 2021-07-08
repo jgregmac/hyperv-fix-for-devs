@@ -1,3 +1,8 @@
+param (
+    # Name of the dummy adapter that will be enabled.
+    [string]$AdapterName = "Hyper-V Fix"
+)
+
 $logRoot = Split-Path $script:MyInvocation.MyCommand.Path -Parent
 $logfilepath = Join-Path -Path $logRoot -ChildPath EnableHyperAdapter.log
 
@@ -9,7 +14,7 @@ if (Test-Path $logfilepath) {
 }
 
 
-$hvAdapter = Get-NetAdapter -Name "Hyper-V Fix"
+$hvAdapter = Get-NetAdapter -Name $AdapterName
 if ($hvAdapter) {
     if ($hvAdapter.Status -eq "Disabled") {
         Enable-NetAdapter -Name $hvAdapter.Name

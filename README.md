@@ -17,13 +17,23 @@ Set-ExecutionPolicy -ExecutionPolicy Unrestricted
 
 Optionally, you can revert to your original Execution Policy after the installation.  If you care.  You probably shouldn't care, since PowerShell execution policies are a ruse.
 
+By default the script reserves the IP address range 172.16.0.0/12 for use by your coporate network.  You can use optional parameters to the script
+to reserve the 192.168.0.0/16 range, or a different single range, of your choosing.
+
+Help is available though the usual PowerShell syntax:
+
+```powershell
+.\Install-DeveloperFix.ps1 -?
+Get-Help .\Install-DeveloperFix.ps1 --Full
+```
+
 ## Background information
 
 ### Hyper-V?  WSL?  What do I do with these?
 
 Linux developers who choose (or are forced) to use Windows will benefit greatly
 from the use the the Windows Subsystem for Linux, and the Hyper-V virtualization
-engine.  These are amazingly powerfull tools that enable developers (and other IT pros
+engine.  These are powerful tools that enable developers (and other IT pros
 such as systems administrators and analysts) to run Linux operating systems, tools, and
 containers quickly and efficiently, while still having access to the broad base of
 Windows productivity tools.
