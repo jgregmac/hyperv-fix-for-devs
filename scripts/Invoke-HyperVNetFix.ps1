@@ -1,3 +1,7 @@
+<#
+.SYNOPSIS
+    Enables the Hyper-V Fix, invokes a WSL2 command, then disables the adapter.
+#>
 param (
     # Name of the dummy adapter used for fixing the Hyper-V network.
     [string]$AdapterName = "Hyper-V Fix"

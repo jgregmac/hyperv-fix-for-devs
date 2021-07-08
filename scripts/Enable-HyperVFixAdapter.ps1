@@ -1,3 +1,7 @@
+<#
+.SYNOPSIS
+    Enables the Hyper-V Fix adapter 
+#>
 param (
     # Name of the dummy adapter that will be enabled.
     [string]$AdapterName = "Hyper-V Fix"

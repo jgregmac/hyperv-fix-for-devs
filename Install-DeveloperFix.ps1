@@ -54,24 +54,27 @@ param (
     directory under your user profile. #>
     [Parameter()]
     [string]
-    $ScriptDestination = (Join-Path -Path $env:USERPROFILE -ChildPath scripts)
+    $ScriptDestination = (Join-Path -Path $env:USERPROFILE -ChildPath "Hyper-V-Fix")
 )
 
 # The installer will create the tasks to run under the account of the user running this
 # installer script.  You could force installation for a specific user by changing these
-# variables.  Both the user name (in DomainName\UserName) and SID are required:
+# variables, but the target user /has to/ have a working WSL instance to launch at login.
+# This scenario has not been tested, so it will remain a "constant" in the script for now.
+# Both the user name (in DomainName\UserName) and SID are required:
 $UserName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 $UserSID = ([System.Security.Principal.WindowsIdentity]::GetCurrent()).User.Value
 
 #region Copy scripts to current user profile
     if (-not (Test-Path $ScriptDestination )) {
-        New-Item -ItemType Directory -Path $ScriptDestination
+        New-Item -ItemType Directory -Path $ScriptDestination -ea Stop
     }
     $CurrentPath = Split-Path  $script:MyInvocation.MyCommand.Path -Parent
     #Write-Host "CurrentPath is: $CurrentPath"
     $ScriptSource = Join-Path -Path $CurrentPath -ChildPath scripts
     #Write-Host "ScriptSource is: $ScriptSource"
-    Copy-Item -Path "$ScriptSource\*" -Destination $ScriptDestination -Force -Confirm:$false
+    Copy-Item -Path (Join-Path -Path $ScriptSource -ChildPath "*.ps1").ToString() `
+        -Destination $ScriptDestination -Force -Confirm:$false -ea Stop
 #endregion
 
 #region Create Scheduled Tasks
@@ -80,7 +83,7 @@ $UserSID = ([System.Security.Principal.WindowsIdentity]::GetCurrent()).User.Valu
     $TaskStage = Join-Path -Path $env:TEMP -ChildPath tasks
     #Write-Host "TaskStage is: $TaskStage"
     if (-not (Test-Path $TaskStage)) {
-        New-Item -ItemType Directory -Path $TaskStage
+        New-Item -ItemType Directory -Path $TaskStage -ea Stop
     }
     # Read the content of our scheduled task templates from the source,
     # Update the templates with local user data, and write to the $env:temp directory.
@@ -92,36 +95,36 @@ $UserSID = ([System.Security.Principal.WindowsIdentity]::GetCurrent()).User.Valu
             ForEach-Object { $_ -replace "USER_SID", $UserSID } |
             ForEach-Object { $_ -replace "STARTUP_SCRIPT_PATH", $ScriptDestination } |
             ForEach-Object { $_ -replace "ADAPTER_NAME", $AdapterName } |
-            Set-Content -Path (Join-Path -Path $TaskStage -ChildPath $Leaf) -Force -Confirm:$false;
+            Set-Content -Path (Join-Path -Path $TaskStage -ChildPath $Leaf) -Force -Confirm:$false -ea Stop;
     }
     # Register the login actions task
     $SourceFile = Join-Path -Path $TaskStage -ChildPath login-task.xml -Resolve
     Register-ScheduledTask -Xml (Get-Content $SourceFile | Out-String) `
-        -TaskName "Hyper-V and WSL Net Fix - Startup Tasks" -Force
+        -TaskName "Hyper-V and WSL Net Fix - Startup Tasks" -Force -ea Stop
     # Register the shutdown actions task
     $SourceFile = Join-Path -Path $TaskStage -ChildPath shutdown-task.xml -Resolve
     Register-ScheduledTask -Xml (Get-Content $SourceFile | Out-String) `
-        -TaskName "Hyper-V and WSL Net Fix - Shutdown Task" -Force
+        -TaskName "Hyper-V and WSL Net Fix - Shutdown Task" -Force -ea Stop
 #endregion
 
 #region Install Loopback Adapter
     # Install the LoopbackAdapter module from the PSGallery, if not present:
     if ( -not (Get-Module -ListAvailable -Name LoopbackAdapter -ea SilentlyContinue )) {
-        Install-Module LoopbackAdapter -Force -Confirm:$false
+        Install-Module LoopbackAdapter -Force -Confirm:$false -ea Stop
     }
     Import-Module LoopbackAdapter
     # Create the Loopback Adapter:
     if (Get-NetAdapter -Name $AdapterName -ea SilentlyContinue) {
         $index = Get-NetAdapter -Name $AdapterName | Select-Object -ExpandProperty ifIndex
         Enable-NetAdapter -Name $AdapterName -ea SilentlyContinue
-        Remove-NetIPAddress -InterfaceIndex $index -Confirm:$false
-        Remove-LoopbackAdapter -Name $AdapterName -Force
+        Remove-NetIPAddress -InterfaceIndex $index -Confirm:$false -ea Stop
+        Remove-LoopbackAdapter -Name $AdapterName -Force -ea Stop
     }
     New-LoopbackAdapter -Name $AdapterName | Out-Null
     # Assign an IP to the adapter and disable it:
     if ( -not (Get-NetIPAddress -IPAddress $LoopbackIP.ToString() -ea SilentlyContinue) ) {
         New-NetIPAddress -IPAddress $LoopbackIP.ToString() -PrefixLength $LoopbackNetLength `
-            -InterfaceAlias "$AdapterName" | Out-Null
+            -InterfaceAlias "$AdapterName" -ea Stop | Out-Null
     }
     Disable-NetAdapter -Name $AdapterName -Confirm:$false
 #endregion

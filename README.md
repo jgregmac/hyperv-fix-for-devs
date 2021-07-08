@@ -8,7 +8,7 @@
 
 ## Usage
 
-Start by cloning this repositor, or downloading its contents to your system.  Open a PowerShell prompt in the directory with this script and run:
+Start by cloning this repository, or downloading its contents to your system.  Open a PowerShell prompt in the directory with this script and run:
 
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted
