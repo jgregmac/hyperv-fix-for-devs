@@ -50,7 +50,7 @@ param (
     [int]
     $LoopbackNetLength = 12,
 
-    <# Target directory for the startup/shutdown scripts.  Default is a "scripts" 
+    <# Target directory for the startup/shutdown scripts.  Default is a "Hyper-V-Fix" 
     directory under your user profile. #>
     [Parameter()]
     [string]
