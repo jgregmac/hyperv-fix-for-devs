@@ -12,10 +12,17 @@ Start by cloning this repository, or downloading its contents to your system.  O
 
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted
+Unblock-File .\Install-DeveloperFix.ps1
 .\Install-DeveloperFix.ps1
 ```
 
-Optionally, you can revert to your original Execution Policy after the installation.  If you care.  You probably shouldn't care, since PowerShell execution policies are a ruse.
+Optionally, you can revert to your original Execution Policy after the installation:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy Restricted
+```
+
+If you care.  You probably shouldn't care, since PowerShell execution policies are a ruse.
 
 By default the script reserves the IP address range 172.16.0.0/12 for use by your coporate network.  You can use optional parameters to the script
 to reserve the 192.168.0.0/16 range, or a different single range, of your choosing.
