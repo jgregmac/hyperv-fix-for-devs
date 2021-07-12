@@ -20,15 +20,18 @@ repository contents, not just the Install-DeveloperFix.ps1 script.
     # "Unrestricted" to run it, if you have not already done so.
     Set-ExecutionPolicy -ExecutionPolicy Unrestricted
 
-    # If you download the code bundle from GitHub instead of cloning the repo, you may
-    # need to "unblock" the scripts:
+    # (If you download the code bundle from GitHub instead of cloning the repo, you may
+    # need to "unblock" the scripts):
     Get-ChildItem -Include *.ps1,*.psm1 -Recurse | Unblock-File -Confirm:$false
 
     # Then just run the script!
     .\Install-DeveloperFix.ps1
-    ```
 
-(Optionally, you can revert to your original Execution Policy after the installation.  If you care.  You probably shouldn't care, since PowerShell execution policies are a ruse.)
+    # (Optionally, you can revert to your original Execution Policy after the installation.) 
+    Set-ExecutionPolicy -ExecutionPolicy Restricted
+    # Note: ExecutionPolicies are not true security boundaries.  Most "serious" PowerShell
+    # users will find that leaving the execution policy set to "Restricted" is impractcal at best.
+    ```
 
 By default the script reserves the IP address range 172.16.0.0/12 for use by your coporate network.  You can use optional parameters to the script
 to reserve the 192.168.0.0/16 range, or a different single range, of your choosing.
