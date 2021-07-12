@@ -2,21 +2,30 @@
 .SYNOPSIS
     Enables the Hyper-V Fix adapter 
 #>
+[CmdletBinding()]
 param (
-    # Name of the dummy adapter that will be enabled.
-    [string]$AdapterName = "Hyper-V Fix"
+    # Name of the dummy adapter used for fixing the Hyper-V network.
+    [Parameter(Mandatory=$true)]
+    [string]$AdapterName,
+    
+    # IP address for the adapter.
+    [Parameter(Mandatory=$true)]
+    [IPAddress]$LoopbackIP,
+
+    # Netmask length for the adapter.
+    [Parameter(Mandatory=$true)]
+    [int]$LoopbackNetLength
 )
 
 $logRoot = Split-Path $script:MyInvocation.MyCommand.Path -Parent
 $logfilepath = Join-Path -Path $logRoot -ChildPath EnableHyperAdapter.log
 
 function WriteToLogFile ($message) {
-   Add-content $logfilepath -value $message
+    Out-File -FilePath $logfilepath -InputObject $message -Append -Encoding utf8
 }
 if (Test-Path $logfilepath) {
     Remove-Item $logfilepath
 }
-
 
 $hvAdapter = Get-NetAdapter -Name $AdapterName
 if ($hvAdapter) {
@@ -28,7 +37,14 @@ if ($hvAdapter) {
     }
 } else {
     WriteToLogFile "Hyper-V Fix adapter does not exist."
+    exit 100
+}
+
+if ( -not (Get-NetIPAddress -IPAddress $LoopbackIP.ToString() -ea SilentlyContinue) ) {
+    WriteToLogFile "Hyper-V Fix adapter has not IP address. Let's add it."
+    New-NetIPAddress -IPAddress $LoopbackIP.ToString() -PrefixLength $LoopbackNetLength `
+        -InterfaceAlias "$AdapterName" -ea Stop 
 }
 
 WriteToLogFile "IP Config after Applying Fix:"
-ipconfig | Out-File -Append -FilePath $logfilepath
+ipconfig | Out-File -Append -FilePath $logfilepath -Encoding utf8

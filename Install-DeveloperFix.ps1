@@ -108,6 +108,8 @@ Out-ConsoleAndLog "Generated Tasks will be run as $UserName with SID: $UserSID"
             ForEach-Object { $_ -replace "USER_SID", $UserSID } |
             ForEach-Object { $_ -replace "STARTUP_SCRIPT_PATH", $ScriptDestination } |
             ForEach-Object { $_ -replace "ADAPTER_NAME", $AdapterName } |
+            ForEach-Object { $_ -replace "IP_ADDRESS", $LoopbackIP } |
+            ForEach-Object { $_ -replace "NETMASK_LENGTH", $LoopbackNetLength } |
             Set-Content -Path (Join-Path -Path $TaskStage -ChildPath $Leaf) -Force -Confirm:$false -ea Stop;
     }
     # Register the login actions task
@@ -146,6 +148,12 @@ Out-ConsoleAndLog "Generated Tasks will be run as $UserName with SID: $UserSID"
         Out-ConsoleAndLog ("Assigning " + $LoopbackIP.ToString() + "/" + $LoopbackNetLength.ToString() + " to the loopback adapter...")
         New-NetIPAddress -IPAddress $LoopbackIP.ToString() -PrefixLength $LoopbackNetLength `
             -InterfaceAlias "$AdapterName" -ea Stop | Out-Null
+        Out-ConsoleAndLog "Let's test to make sure the IP was assigned..."
+        if ( -not (Get-NetIPAddress -IPAddress $LoopbackIP.ToString() )) {
+            Out-ConsoleAndLog "Hyper-V Fix Adapter does not have the expected IP Address Assigned." -Type Error
+        } else {
+            Out-ConsoleAndLog "Good to go!"
+        }
     }
     Out-ConsoleAndLog "Disabling the new adapter, so it does not ruin your life..."
     Disable-NetAdapter -Name $AdapterName -Confirm:$false
