@@ -18,7 +18,7 @@ param (
 )
 
 $logRoot = Split-Path $script:MyInvocation.MyCommand.Path -Parent
-$logfilepath = Join-Path -Path $logRoot -ChildPath HyperVNetFix.log
+$logfilepath = Join-Path -Path $logRoot -ChildPath InvokeHyperVNetFix.log
 
 function WriteToLogFile ($message) {
     Out-File -FilePath $logfilepath -InputObject $message -Append -Encoding utf8
@@ -27,10 +27,17 @@ if (Test-Path $logfilepath) {
     Remove-Item $logfilepath
 }
 
-Get-NetAdapter -Name $AdapterName | Enable-NetAdapter
+Enable-NetAdapter -Name $AdapterName -ea Stop
 WriteToLogFile "Hyper-V Fix Adapter Enabled."
-if ( -not (Get-NetIPAddress -IPAddress $LoopbackIP.ToString() -ea SilentlyContinue) ) {
-    WriteToLogFile "Hyper-V Fix adapter has not IP address. Let's add it."
+
+WriteToLogFile "Current IP of adapter: "
+$CurrentIP = Get-NetIPAddress -InterfaceAlias $AdapterName -AddressFamily IPv4
+[string]$ipString = ($CurrentIP.IPAddress + "/" + $CurrentIP.PrefixLength.ToString())
+WriteToLogFile $ipString
+
+if ( $CurrentIP.IPAddress -ne $LoopbackIP ) {
+    WriteToLogFile "Hyper-V Fix adapter has the wrong address.  Let' fix that..."
+    Remove-NetIPAddress -IPAddress $CurrentIP.IPAddress -Confirm:$false
     New-NetIPAddress -IPAddress $LoopbackIP.ToString() -PrefixLength $LoopbackNetLength `
         -InterfaceAlias "$AdapterName" -ea Stop 
 }
@@ -45,7 +52,7 @@ if ( Get-NetIPAddress -IPAddress $LoopbackIP.ToString() -ErrorAction SilentlyCon
     exit 100
 }
 
-Get-NetAdapter -Name $AdapterName | Disable-NetAdapter -Confirm:$false
+Disable-NetAdapter -Name $AdapterName -Confirm:$false
 WriteToLogFile "Hyper-V Fix Adapter Disabled."
 
 WriteToLogFile "IP Config after Applying Fix:"

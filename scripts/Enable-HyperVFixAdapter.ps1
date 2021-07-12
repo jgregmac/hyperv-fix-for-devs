@@ -18,7 +18,7 @@ param (
 )
 
 $logRoot = Split-Path $script:MyInvocation.MyCommand.Path -Parent
-$logfilepath = Join-Path -Path $logRoot -ChildPath EnableHyperAdapter.log
+$logfilepath = Join-Path -Path $logRoot -ChildPath EnableHyperVAdapter.log
 
 function WriteToLogFile ($message) {
     Out-File -FilePath $logfilepath -InputObject $message -Append -Encoding utf8
@@ -40,11 +40,18 @@ if ($hvAdapter) {
     exit 100
 }
 
-if ( -not (Get-NetIPAddress -IPAddress $LoopbackIP.ToString() -ea SilentlyContinue) ) {
-    WriteToLogFile "Hyper-V Fix adapter has not IP address. Let's add it."
+WriteToLogFile "Current IP of adapter: "
+$CurrentIP = Get-NetIPAddress -InterfaceAlias $AdapterName -AddressFamily IPv4
+[string]$ipString = ($CurrentIP.IPAddress + "/" + $CurrentIP.PrefixLength.ToString())
+WriteToLogFile $ipString
+
+if ( $CurrentIP.IPAddress -ne $LoopbackIP ) {
+    WriteToLogFile "Hyper-V Fix adapter has the wrong address.  Let' fix that..."
+    Remove-NetIPAddress -IPAddress $CurrentIP.IPAddress -Confirm:$false
     New-NetIPAddress -IPAddress $LoopbackIP.ToString() -PrefixLength $LoopbackNetLength `
         -InterfaceAlias "$AdapterName" -ea Stop 
+    WriteToLogFile "IPv4 address of the adapter after fix:"
+    $CurrentIP = Get-NetIPAddress -InterfaceAlias $AdapterName -AddressFamily IPv4
+    [string]$ipString = ($CurrentIP.IPAddress + "/" + $CurrentIP.PrefixLength.ToString())
+    WriteToLogFile $ipString
 }
-
-WriteToLogFile "IP Config after Applying Fix:"
-ipconfig | Out-File -Append -FilePath $logfilepath -Encoding utf8
