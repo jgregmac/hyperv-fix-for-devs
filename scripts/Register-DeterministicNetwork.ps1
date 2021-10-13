@@ -44,15 +44,19 @@ Import-Module (Join-Path -Path $CurrentPath -ChildPath "OutConsoleAndLog.psm1")
 # See: <https://github.com/skorhone/wsl2-custom-network/blob/main/hcn/Hcn.psm1>
 . (Join-Path -Path $CurrentPath -ChildPath "HCN.ps1") -ea Stop
 
-# We could add these as changeable parameters, but why?  That's not the point of this script.
-# Start of the MAC address pool for the network:
-[string]$MacPoolStart="00-15-5D-52-C0-00"
-# End of the MAC address pool for the network:
-[string]$MacPoolEnd="00-15-5D-52-CF-FF"
-
 switch ($NetworkName) {
-    "WSL" { [guid]$HnsNetworkId = "B95D0C5E-57D4-412B-B571-18A81A16E005" }
-    "Hyper-V" { Out-ConsoleAndLog "Unsupported. Bust a sweat and implement it."; exit 101 }
+    "WSL" {
+        [string]$HnsName = "WSL"
+        [guid]$HnsNetworkId = "B95D0C5E-57D4-412B-B571-18A81A16E005"
+        [string]$MacPoolStart="00-15-5D-52-C0-00"
+        [string]$MacPoolEnd="00-15-5D-52-CF-FF"
+    }
+    "Hyper-V" {
+        [string]$HnsName = "Default Switch"
+        [guid]$HnsNetworkId = "C08CB7B8-9B3C-408E-8E30-5E16A3AEB444"
+        [string]$MacPoolStart="00-15-5D-D2-B0-00"
+        [string]$MacPoolEnd="00-15-5D-D2-BF-FF"
+    }
     Default { exit 100 }
 }
 
@@ -63,7 +67,7 @@ $Guid2 = New-Guid
 # Note:  For NAT, use Flags = 0 and Type = NAT.
 $HnsNetworkConfig = @"
 {
-    "Name" : "$NetworkName",
+    "Name" : "$HnsName",
     "Flags": 9,
     "Type": "ICS",
     "IPv6": false,
@@ -105,7 +109,7 @@ Out-ConsoleAndLog $HnsNetworkConfig
 New-HnsNetworkEx -Id $HnsNetworkId -JsonString $HnsNetworkConfig | Out-Null
 
 # Check on the resulting adapter:
-$newAdapter = Get-NetAdapter -Name "vEthernet ($NetworkName)"
+$newAdapter = Get-NetAdapter -Name "vEthernet ($HnsName)"
 
 if ($newAdapter) {
     # Out-ConsoleAndLog "Pausing while the adapter initializes..."
