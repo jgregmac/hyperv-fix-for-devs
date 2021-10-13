@@ -1,19 +1,42 @@
 # Hyper-V and WSL2 Network Fix for Linux Developers
 
-A work-around for the annoying networking problems that plague WSL2 / Hyper-V users who
-roam or use VPN connections to get work done.
+Normally, Hyper-V/WSL uses a collision-avoidance algorithm when assigning private
+network ranges to the virtual network that it creates for Hyper-V based networks.
+This is fine for many use cases, but remote and roaming users on corporate networks
+may find this behavior unacceptable as the network that Windows thought was
+non-conflicting at system startup may become conflicting when you later start a VPN
+connection to your business network.
+
+This script allows you to specify a deterministic network range and gatweway to use
+for WSL or Hyper-V.  The network will be re-created on each startup to ensure
+continuity.
+
+This repository contains the script `Install-DeterministicNetwork.ps1`, which will create
+a scheduled task to register your preferred deterministic network ranges each time you
+login to Windows, and the script `Register-DeterministicNetwork.ps1`, which can be run
+on-demand.
+
+## Credit Where It Is Due
+
+This solution would not function without the work of Sami Korhonen:  
+<https://github.com/skorhone/wsl2-custom-network>
+
+Sami's work is built off of the HNS PowerShell module by "nwoodmsft" and "keithmange":  
+<https://www.powershellgallery.com/packages/HNS/>
+
+Good work all in sorting out Microsoft's undocumented HNS network API!
 
 ## Prerequisites
 
 - You must have "Administrator" privileges on your system to run this script
-- Script tested onyl on Windows 10 21H1 with PowerShell 5 and 7.1.
-- The script uses the PowerShell Gallery community module "LoopbackAdapter". This Module is not maintained by Microsoft, and uses external binaries to manage virtual hardware on your system.
+- This script tested only on Windows 10 21H1 and 11 21H2 with PowerShell 5 and 7.1.
 
 ## Usage
 
 1. Start by cloning this repository, or downloading its contents to your system.  You need the _entire_
-repository contents, not just the Install-DeveloperFix.ps1 script.  
-2. Open a PowerShell prompt in the directory with the script and run the following commands:
+repository contents, not just the Install-DeveloperFix.ps1 script.
+2. Decide on a network range and gateway address for your new network, or use the defaults in this script.
+3. Open a PowerShell prompt in the directory with the script and run the following commands:
 
     ```powershell
     # This script is not signed, so you need to set ExecutionPolicy to "RemoteSigned" or 
@@ -24,8 +47,9 @@ repository contents, not just the Install-DeveloperFix.ps1 script.
     # need to "unblock" the scripts):
     Get-ChildItem -Include *.ps1,*.psm1 -Recurse | Unblock-File -Confirm:$false
 
-    # Then just run the script!
-    .\Install-DeveloperFix.ps1
+    # Then just run the script.  The parameters are optional and will default to:
+    # WSL, 192.168.100.1, and 192.168.100.0/24, respectively.
+    .\Install-DeterministicNetwork.ps1 [-NetworkName [ WSL | Hyper-V ]] [-GatewayAddress "IP_ADDRESS" ] [-NetworkAddress "NetworkAddressCIDR"]
 
     # (Optionally, you can revert to your original Execution Policy after the installation.) 
     Set-ExecutionPolicy -ExecutionPolicy Restricted
@@ -33,17 +57,14 @@ repository contents, not just the Install-DeveloperFix.ps1 script.
     # users will find that leaving the execution policy set to "Restricted" is impractcal at best.
     ```
 
-By default the script reserves the IP address range 172.16.0.0/12 for use by your coporate network.  You can use optional parameters to the script
-to reserve the 192.168.0.0/16 range, or a different single range, of your choosing.
-
 Help is available though the usual PowerShell syntax:
 
 ```powershell
 # Simple Help:
-.\Install-DeveloperFix.ps1 -?
+.\Install-DeterministicNetwork.ps1 -?
 
 # Full Help:
-Get-Help .\Install-DeveloperFix.ps1 --Full
+Get-Help .\Install-DeterministicNetwork.ps1 --Full
 ```
 
 ## Background information
@@ -74,14 +95,10 @@ fixing this common problem.
 
 Sure, you could get a Mac, or install Ubuntu.  You also could use an alternative Linux
 run environment such as "Oracle VirtualBox", or VMware Workstation.  OR... you can just
-run the "Install-DeveloperFix.ps1" script in this repository, and your life will be good again.*
+run the "Install-DeterministicNetwork.ps1" script in this repository, and your life will be good again.*
 
-This tool will install a Loopback network adapter and startup and shutdown scripts
-that are designed to "trick" the Hyper-V (and WSL) network collision avoidance
-algorithm into using a network range of our choosing that we know will not collide
-with our corporate internal private networks.
-
-I have experimented with muliple alternative solutions to this problem.
-Only the approach in this script appears to work across multiple reboots of the system.
+This tool will pre-create the "HNSNetwork" that WSL or Hyper-V network that Windows would create
+automatically, but using deterministic network ranges provided by you so that you don't get
+rando address ranges that create problems with your corporate network.
 
 *Ongoing life goodness not guaranteed.

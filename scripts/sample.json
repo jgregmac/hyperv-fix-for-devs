@@ -1,0 +1,31 @@
+{
+    "Name" : "WSL",
+    "Flags": 9,
+    "Type": "ICS",
+    "IPv6": false,
+    "IsolateSwitch": true,
+    "MaxConcurrentEndpoints": 1,
+    "Subnets" : [
+        {
+            "ID" : "33880104-63d9-4932-bc5c-ad7d2fee94bc",
+            "ObjectType": 5,
+            "AddressPrefix" : "192.168.100.0/24",
+            "GatewayAddress" : "192.168.100.1",
+            "IpSubnets" : [
+                {
+                    "ID" : "0be1ee74-16f9-4dc3-ac5a-aa741a348355",
+                    "Flags": 3,
+                    "IpAddressPrefix": "192.168.100.0/24",
+                    "ObjectType": 6
+                }
+            ]
+        }
+    ],
+    "MacPools":  [
+        {
+            "EndMacAddress":  "00-15-5D-52-CF-FF",
+            "StartMacAddress":  "00-15-5D-52-C0-00"
+        }
+    ],
+    "DNSServerList" : "192.168.100.1"
+}

@@ -24,43 +24,43 @@
 [CmdletBinding()]
 param (
     # Name of the dummy adapter that will be created.
+    # Only testing this for WSL at present... will need to re-install Hyper-V to validate:
     [Parameter()]
+    [ValidateSet("WSL", "Hyper-V")]
     [string]
-    $AdapterName = "Hyper-V Fix",
+    $NetworkName = "WSL",
 
     <#
-      An IP address in the network range used by your organization. 
-      Common values would be:
-      - 172.16.0.1 for class B private networks
-      - 192.168.0.1 for class C private networks
+      The IP address to be used on the interface created for WSL/Hyper-V.  Thi will serve
+      as the gateway address for the new virtual network. Examples:
+      - 192.168.100.1 (Default) - A class C private network that is unlikely to collide with most home networks.
+      - 172.16.100.1 - A class B private network, which might collide with a corporate network.
+      - 10.100.100.1 - A class A private network, less likely to collide with a corporate network, but it could!
     #>
     [Parameter()]
-    [IPAddress]
-    $LoopbackIP = "172.16.0.1",
+    [IPaddress]
+    $GatewayAddress = "192.168.100.1",
 
-    <# 
-      The netmask length that covers the entirety of the private network range used 
-      by your organization.
-      Common values would be:
-      - 12 for class B (172.16) private networks
-      - 16 for class C (192.168) private networks
+    <#
+      The network address, in CIDR notation, to be assigned to the new virtual network.
+      See: <https://docs.netgate.com/pfsense/en/latest/network/cidr.html>
+      The default is 192.168.100.0/24.
     #>
     [Parameter()]
-    [ValidateRange(1,32)]
-    [int]
-    $LoopbackNetLength = 12,
+    [string]
+    $NetworkAddress = "192.168.100.0/24",
 
     <# Target directory for the startup/shutdown scripts.  Default is a "Hyper-V-Fix" 
     directory under your user profile. #>
     [Parameter()]
     [string]
-    $ScriptDestination = (Join-Path -Path $env:USERPROFILE -ChildPath "Hyper-V-Fix")
+    $ScriptDestination = (Join-Path -Path $env:USERPROFILE -ChildPath "Hyper-V-Network-Fix")
 )
 
 # Establish current path and logging:
 $CurrentPath = Split-Path  $script:MyInvocation.MyCommand.Path -Parent
-Import-Module (Join-Path -Path $CurrentPath -ChildPath "\modules\OutConsoleAndLog.psm1") -ea Stop
-$global:GlobalLog = (Join-Path -Path $CurrentPath -ChildPath Install-DeveloperFix.log)
+Import-Module (Join-Path -Path $CurrentPath -ChildPath "\scripts\OutConsoleAndLog.psm1") -ea Stop
+$global:GlobalLog = (Join-Path -Path $CurrentPath -ChildPath "Install-DeveloperFix.log")
 if (Test-Path $GlobalLog) { Remove-Item -Path $GlobalLog -Force -Confirm:$false }
 
 Out-ConsoleAndLog "Starting installation of the Hyper-V Developer Fix." 
@@ -85,7 +85,7 @@ Out-ConsoleAndLog "Generated Tasks will be run as $UserName with SID: $UserSID"
     $ScriptSource = Join-Path -Path $CurrentPath -ChildPath scripts
     #Write-Host "ScriptSource is: $ScriptSource"
     Out-ConsoleAndLog "Copying scripts into place..."
-    Copy-Item -Path (Join-Path -Path $ScriptSource -ChildPath "*.ps1").ToString() `
+    Copy-Item -Path (Join-Path -Path $ScriptSource -ChildPath "*.ps*1").ToString() `
         -Destination $ScriptDestination -Force -Confirm:$false -ea Stop
 #endregion
 
@@ -107,56 +107,17 @@ Out-ConsoleAndLog "Generated Tasks will be run as $UserName with SID: $UserSID"
             ForEach-Object { $_ -replace "USER_ID", $UserName } |
             ForEach-Object { $_ -replace "USER_SID", $UserSID } |
             ForEach-Object { $_ -replace "STARTUP_SCRIPT_PATH", $ScriptDestination } |
-            ForEach-Object { $_ -replace "ADAPTER_NAME", $AdapterName } |
-            ForEach-Object { $_ -replace "IP_ADDRESS", $LoopbackIP } |
-            ForEach-Object { $_ -replace "NETMASK_LENGTH", $LoopbackNetLength } |
+            ForEach-Object { $_ -replace "NETWORK_NAME", $NetworkName } |
+            ForEach-Object { $_ -replace "IP_ADDRESS", $GatewayAddress } |
+            ForEach-Object { $_ -replace "NETWORK_ADDRESS", $NetworkAddress } |
             Set-Content -Path (Join-Path -Path $TaskStage -ChildPath $Leaf) -Force -Confirm:$false -ea Stop;
     }
     # Register the login actions task
     Out-ConsoleAndLog "Registering the startup/login task..."
     $SourceFile = Join-Path -Path $TaskStage -ChildPath login-task.xml -Resolve
     Register-ScheduledTask -Xml (Get-Content $SourceFile | Out-String) `
-        -TaskName "Hyper-V and WSL Net Fix - Startup Tasks" -Force -ea Stop | Out-Null
-    # Register the shutdown actions task
-    Out-ConsoleAndLog "Registring the shutdown task..."
-    $SourceFile = Join-Path -Path $TaskStage -ChildPath shutdown-task.xml -Resolve
-    Register-ScheduledTask -Xml (Get-Content $SourceFile | Out-String) `
-        -TaskName "Hyper-V and WSL Net Fix - Shutdown Task" -Force -ea Stop | Out-Null
-    Out-ConsoleAndLog "Cleaning up staged task definitions..."
-    Remove-Item -Recurse -Path $TaskStage -Force
+        -TaskName "$NetworkName Fix Task - On Startup" -Force -ea Stop | Out-Null
+    # Remove-Item -Recurse -Path $TaskStage -Force
 #endregion
 
-#region Install Loopback Adapter
-    Out-ConsoleAndLog "Starting the Loopback adapter configuration..."
-    # Install the LoopbackAdapter module from the PSGallery, if not present:
-    if ( -not (Get-Module -ListAvailable -Name LoopbackAdapter -ea SilentlyContinue )) {
-        Out-ConsoleAndLog "The LoopbackAdapter module is not installed.  Installing..."
-        Install-Module LoopbackAdapter -Force -Confirm:$false -ea Stop
-    }
-    Import-Module LoopbackAdapter
-    if (Get-NetAdapter -Name $AdapterName -ea SilentlyContinue) {
-        Out-ConsoleAndLog "Removing the existing adapter with name: '$AdapterName'..."
-        $index = Get-NetAdapter -Name $AdapterName | Select-Object -ExpandProperty ifIndex
-        Enable-NetAdapter -Name $AdapterName -ea SilentlyContinue
-        Remove-NetIPAddress -InterfaceIndex $index -Confirm:$false -ea Stop
-        Remove-LoopbackAdapter -Name $AdapterName -Force -ea Stop
-    }
-    Out-ConsoleAndLog ("Creating a new Loopback adapter with name: '$AdapterName'...")
-    New-LoopbackAdapter -Name $AdapterName | Out-Null
-    # Assign an IP to the adapter and disable it:
-    if ( -not (Get-NetIPAddress -IPAddress $LoopbackIP.ToString() -ea SilentlyContinue) ) {
-        Out-ConsoleAndLog ("Assigning " + $LoopbackIP.ToString() + "/" + $LoopbackNetLength.ToString() + " to the loopback adapter...")
-        New-NetIPAddress -IPAddress $LoopbackIP.ToString() -PrefixLength $LoopbackNetLength `
-            -InterfaceAlias "$AdapterName" -ea Stop | Out-Null
-        Out-ConsoleAndLog "Let's test to make sure the IP was assigned..."
-        if ( -not (Get-NetIPAddress -IPAddress $LoopbackIP.ToString() )) {
-            Out-ConsoleAndLog "Hyper-V Fix Adapter does not have the expected IP Address Assigned." -Type Error
-        } else {
-            Out-ConsoleAndLog "Good to go!"
-        }
-    }
-    Out-ConsoleAndLog "Disabling the new adapter, so it does not ruin your life..."
-    Disable-NetAdapter -Name $AdapterName -Confirm:$false
-#endregion
-
-Out-ConsoleAndLog "All done.  Hyper-V Fix adapter and support scripts have been installed."
+Out-ConsoleAndLog "All done.  Hyper-V Network Fix Startup Script has been installed."
