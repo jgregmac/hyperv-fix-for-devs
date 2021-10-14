@@ -28,7 +28,7 @@ param (
     [Parameter()]
     [ValidateSet("WSL", "Hyper-V")]
     [string]
-    $NetworkName = "WSL",
+    $NetworkType = "WSL",
 
     <#
       The IP address to be used on the interface created for WSL/Hyper-V.  Thi will serve
@@ -60,7 +60,7 @@ param (
 # Establish current path and logging:
 $CurrentPath = Split-Path  $script:MyInvocation.MyCommand.Path -Parent
 Import-Module (Join-Path -Path $CurrentPath -ChildPath "\scripts\OutConsoleAndLog.psm1") -ea Stop
-$global:GlobalLog = (Join-Path -Path $CurrentPath -ChildPath "Install-DeveloperFix.log")
+$global:GlobalLog = (Join-Path -Path $CurrentPath -ChildPath "Install-Deterministric-$NetworkType-Network.log")
 if (Test-Path $GlobalLog) { Remove-Item -Path $GlobalLog -Force -Confirm:$false }
 
 Out-ConsoleAndLog "Starting installation of the Hyper-V Developer Fix." 
@@ -107,7 +107,7 @@ Out-ConsoleAndLog "Generated Tasks will be run as $UserName with SID: $UserSID"
             ForEach-Object { $_ -replace "USER_ID", $UserName } |
             ForEach-Object { $_ -replace "USER_SID", $UserSID } |
             ForEach-Object { $_ -replace "STARTUP_SCRIPT_PATH", $ScriptDestination } |
-            ForEach-Object { $_ -replace "NETWORK_NAME", $NetworkName } |
+            ForEach-Object { $_ -replace "NETWORK_TYPE", $NetworkType } |
             ForEach-Object { $_ -replace "IP_ADDRESS", $GatewayAddress } |
             ForEach-Object { $_ -replace "NETWORK_ADDRESS", $NetworkAddress } |
             Set-Content -Path (Join-Path -Path $TaskStage -ChildPath $Leaf) -Force -Confirm:$false -ea Stop;
@@ -116,7 +116,7 @@ Out-ConsoleAndLog "Generated Tasks will be run as $UserName with SID: $UserSID"
     Out-ConsoleAndLog "Registering the startup/login task..."
     $SourceFile = Join-Path -Path $TaskStage -ChildPath login-task.xml -Resolve
     Register-ScheduledTask -Xml (Get-Content $SourceFile | Out-String) `
-        -TaskName "$NetworkName Fix Task - On Startup" -Force -ea Stop | Out-Null
+        -TaskName "$NetworkType Fix Task - On Startup" -Force -ea Stop | Out-Null
     # Remove-Item -Recurse -Path $TaskStage -Force
 #endregion
 

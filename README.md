@@ -1,15 +1,17 @@
 # Hyper-V and WSL2 Network Fix for Linux Developers
 
 Normally, Hyper-V/WSL uses a collision-avoidance algorithm when assigning private
-network ranges to the virtual network that it creates for Hyper-V based networks.
+network ranges to the virtual networks that it creates for use by these services.
 This is fine for many use cases, but remote and roaming users on corporate networks
 may find this behavior unacceptable as the network that Windows thought was
 non-conflicting at system startup may become conflicting when you later start a VPN
-connection to your business network.
+connection to your business network.  The result is that your WSL or Hyper-V instances
+may lose outbound connectivity and bring your development work to a halt.
 
 This script allows you to specify a deterministic network range and gatweway to use
 for WSL or Hyper-V.  The network will be re-created on each startup to ensure
-continuity.
+continuity. _NOTE:_ WSL is the primary use case for this tool.  Hyper-V support is
+_experimental_ and not yet reliable.
 
 This repository contains the script `Install-DeterministicNetwork.ps1`, which will create
 a scheduled task to register your preferred deterministic network ranges each time you
