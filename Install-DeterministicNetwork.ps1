@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Installation Script for the Hyper-V / WSL2 Network Fix for Developers
+    Installation Script for the WSL2 Network Fix for Developers
 
 .DESCRIPTION
     Linux developers who choose (or are forced) to use Windows will benefit greatly
@@ -9,17 +9,47 @@
     private network ranges, especially when the developer using the system roams
     between remote and on-site work, or needs a VPN connection.
 
-    The problem is that Hyper-V selects private network ranges for internal use based
-    on the networks that it can "see" when the system starts up.  If the private networks
-    in use change after startup, there may be a network collision.  Networking inside
-    the Hyper-V and WSL VMs then fail, and sometimes general networking on the host
-    Windows system deteriorates as well.  Microsoft does not appear to be interested in
-    fixing this common problem.
+    The problem is that WSL and Hyper-V select private network ranges for internal use
+    based on the networks that it can "see" when the system starts up.  If the private
+    networks in use change after startup, there may be a network collision.  Networking
+    inside the Hyper-V and WSL VMs then fail, and sometimes general networking on the
+    host Windows system deteriorates as well.  Microsoft does not appear to be
+    interested in fixing this common problem.
 
     This tool will install a Loopback network adapter and startup and shutdown scripts
-    that are designed to "trick" the Hyper-V (and WSL) network collision avoidance
-    algorithm into using a network range of our choosing that we know will not collide
-    with our corporate internal private networks.
+    that are designed to "trick" the WSL (and experimentally, Hyper-V) network collision
+    avoidance algorithm into using a network range of our choosing that we know will not
+    collide with our corporate internal private networks.
+
+.EXAMPLE
+    PS> .\Install-DeterministicNetwork.ps1 -NetworkType WSL `
+        -GatewayAddress 172.30.0.1 `
+        -NetworkAddress 172.30.0.0/23
+
+    "Class B Network" Example:
+    Creates a WSL network adapter at 172.30.0.1 and netmask 255.255.254.0.  This provides
+    a range of addresses for WSL instances to use from 172.30.0.2 - 172.30.1.255
+
+.EXAMPLE
+    PS> .\Install-DeterministicNetwork.ps1 -NetworkType WSL `
+        -GatewayAddress 10.10.10.1 `
+        -NetworkAddress 10.10.10.0/25
+
+    "Class A Network" Example:
+    Creates a WSL network adapter at 10.10.10.1 and netmask 255.255.255.128.  This provides
+    a range of addresses for WSL instances to use from 10.10.10.2 - 10.10.10.127
+
+.EXAMPLE
+    PS> .\Install-DeterministicNetwork.ps1 -NetworkType Hyper-V `
+        -GatewayAddress 192.168.10.1 `
+        -NetworkAddress 192.168.10.0/24
+
+    "Class C Network" Example:
+    Creates a Hyper-V network adapter at 192.168.10.1 and netmask 255.255.255.0.  This provides
+    a range of addresses for WSL instances to use from 192.168.10.2 - 192.168.10.254
+
+.LINK
+    https://github.com/jgregmac/hyperv-fix-for-devs
 #>
 [CmdletBinding()]
 param (
@@ -33,9 +63,9 @@ param (
     <#
       The IP address to be used on the interface created for WSL/Hyper-V.  This will serve
       as the gateway address for the new virtual network. Examples:
-      - 192.168.100.1 (Default) - A class C private network that is unlikely to collide with most home networks.
-      - 172.16.100.1 - A class B private network, which might collide with a corporate network.
-      - 10.100.100.1 - A class A private network, less likely to collide with a corporate network, but it could!
+      - 192.168.100.1 (Default) - A "class C" private network that is unlikely to collide with most home networks.
+      - 172.16.100.1 - A "class B" private network, which might collide with a corporate network.
+      - 10.100.100.1 - A "class A" private network, less likely to collide with a corporate network, but it could!
     #>
     [Parameter()]
     [IPaddress]
@@ -43,7 +73,8 @@ param (
 
     <#
       The network address, in CIDR notation, to be assigned to the new virtual network.
-      See: <https://docs.netgate.com/pfsense/en/latest/network/cidr.html>
+      For explanation, see: <https://docs.netgate.com/pfsense/en/latest/network/cidr.html>
+      For the "easy version", use: <https://www.subnet-calculator.com/cidr.php>
       The default is 192.168.100.0/24.
     #>
     [Parameter()]
