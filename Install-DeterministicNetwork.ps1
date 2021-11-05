@@ -50,11 +50,11 @@ param (
     [string]
     $NetworkAddress = "192.168.100.0/24",
 
-    <# Target directory for the startup/shutdown scripts.  Default is a "Hyper-V-Fix" 
+    <# Target directory for the startup/shutdown scripts.  Default is a "$NetworkType-Network-Fix" 
     directory under your user profile. #>
     [Parameter()]
     [string]
-    $ScriptDestination = (Join-Path -Path $env:USERPROFILE -ChildPath "Hyper-V-Network-Fix")
+    $ScriptDestination = (Join-Path -Path $env:USERPROFILE -ChildPath "$NetworkType-Network-Fix")
 )
 
 # Establish current path and logging:
@@ -63,7 +63,7 @@ Import-Module (Join-Path -Path $CurrentPath -ChildPath "\scripts\OutConsoleAndLo
 $global:GlobalLog = (Join-Path -Path $CurrentPath -ChildPath "Install-Deterministric-$NetworkType-Network.log")
 if (Test-Path $GlobalLog) { Remove-Item -Path $GlobalLog -Force -Confirm:$false }
 
-Out-ConsoleAndLog "Starting installation of the Hyper-V Developer Fix." 
+Out-ConsoleAndLog "Starting installation of the $NetworkType Network Fix." 
 Out-ConsoleAndLog "These messages will be logged to: $GlobalLog" 
 
 # The installer will create the tasks to run under the account of the user running this
@@ -91,7 +91,7 @@ Out-ConsoleAndLog "Generated Tasks will be run as $UserName with SID: $UserSID"
 
 #region Create Scheduled Tasks
     $TaskSource = Join-Path -Path $CurrentPath -ChildPath tasks
-    $TaskStage = Join-Path -Path $env:TEMP -ChildPath "hyper-v-tasks"
+    $TaskStage = Join-Path -Path $env:TEMP -ChildPath "$NetworkType-tasks"
     Out-ConsoleAndLog "Staging task definitions to: $TaskStage"
     if (-not (Test-Path $TaskStage)) {
         Out-ConsoleAndLog "Creating staging directory: '$TaskStage'..."
@@ -120,4 +120,4 @@ Out-ConsoleAndLog "Generated Tasks will be run as $UserName with SID: $UserSID"
     # Remove-Item -Recurse -Path $TaskStage -Force
 #endregion
 
-Out-ConsoleAndLog "All done.  Hyper-V Network Fix Startup Script has been installed."
+Out-ConsoleAndLog "All done. $NetworkType Network Fix Startup Script has been installed."

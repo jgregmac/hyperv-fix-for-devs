@@ -1,4 +1,4 @@
-# Hyper-V and WSL2 Network Fix for Linux Developers
+# WSL2 Network Fix for Linux Developers
 
 Normally, Hyper-V/WSL uses a collision-avoidance algorithm when assigning private
 network ranges to the virtual networks that it creates for use by these services.
@@ -9,7 +9,7 @@ connection to your business network.  The result is that your WSL or Hyper-V ins
 may lose outbound connectivity and bring your development work to a halt.
 
 This script allows you to specify a deterministic network range and gatweway to use
-for WSL or Hyper-V.  The network will be re-created on each startup to ensure
+for WSL.  The network will be re-created on each startup to ensure
 continuity. _NOTE:_ WSL is the primary use case for this tool.  Hyper-V support is
 _experimental_ and not yet reliable.
 
@@ -18,15 +18,39 @@ a scheduled task to register your preferred deterministic network ranges each ti
 login to Windows, and the script `Register-DeterministicNetwork.ps1`, which can be run
 on-demand.
 
+- [WSL2 Network Fix for Linux Developers](#wsl2-network-fix-for-linux-developers)
+  - [Credit Where It Is Due](#credit-where-it-is-due)
+  - [Alternatives](#alternatives)
+  - [Prerequisites](#prerequisites)
+  - [Usage](#usage)
+  - [Background information](#background-information)
+    - [Hyper-V?  WSL?  What do I do with these?](#hyper-v--wsl--what-do-i-do-with-these)
+    - [Great! So what is the problem?](#great-so-what-is-the-problem)
+    - [So what can I do about that?  Get a Mac?](#so-what-can-i-do-about-that--get-a-mac)
+
 ## Credit Where It Is Due
 
-This solution would not function without the work of Sami Korhonen:  
+This solution really is just a PowerShell wrapper around HNS Network handline code
+that was developed by others.
+
+It is built most directly off the work of Sami Korhonen:  
 <https://github.com/skorhone/wsl2-custom-network>
 
-Sami's work is built off of the HNS PowerShell module by "nwoodmsft" and "keithmange":  
+Sami's code builds off of the HNS PowerShell module by "nwoodmsft" and "keithmange":  
 <https://www.powershellgallery.com/packages/HNS/>
 
+Sami cites Biswa96's (Biswaprio Nath) code sample here as the inspiration for his work:  
+<https://github.com/microsoft/WSL/discussions/7395>
+
 Good work all in sorting out Microsoft's undocumented HNS network API!
+
+## Alternatives
+
+A rather nice-looking and solution by [@wikiped](https://github.com/wikiped) can be found here:  
+<https://github.com/wikiped/WSL-IpHandler>  
+(This approach "does more", which is great if you need the additional functionality.  I
+just want a simple and reliable mechanism for keeping the WSL network in a range of
+my choosing.)
 
 ## Prerequisites
 

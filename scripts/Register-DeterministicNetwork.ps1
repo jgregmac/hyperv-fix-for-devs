@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
-    Creates or Re-creates the Hyper-V or WSL private network with the specified
-    (deterministic) network range.
+    Creates or Re-creates the WSL private network with the specified (deterministic)
+    network range.
 .DESCRIPTION
     Normally, Hyper-V/WSL uses a collision-avoidance algorithm when assigning private
     network ranges to the virtual network that it creates for Hyper-V based networks.
@@ -11,8 +11,8 @@
     connection to your business network.
 
     This script allows you to specify a deterministic network range and gatweway to use
-    for WSL or Hyper-V.  The network will be re-created on each startup to ensure
-    continuity.
+    for WSL (functional) or Hyper-V (experimental).  The network will be re-created on
+    each startup to ensure continuity.
 #>
 [CmdletBinding()]
 param (
@@ -32,7 +32,7 @@ param (
 
 # Establish current path and logging:
 $CurrentPath = Split-Path  $script:MyInvocation.MyCommand.Path -Parent
-$global:GlobalLog = (Join-Path -Path $CurrentPath -ChildPath "Register-$NetworkName-Network.log")
+$global:GlobalLog = (Join-Path -Path $CurrentPath -ChildPath "Register-$NetworkType-Network.log")
 if (Test-Path $GlobalLog) { Remove-Item -Path $GlobalLog -Force -Confirm:$false }
 
 # Load our custom logging module:
@@ -47,13 +47,16 @@ Import-Module (Join-Path -Path $CurrentPath -ChildPath "OutConsoleAndLog.psm1")
 switch ($NetworkType) {
     "WSL" {
         [string] $HnsName      = "WSL"
+        # These GUID values are used consistently when Windows generates the WSL network.
+        # I don't think there is anything magical about the values, but I am preserving
+        # them here is case there is some reason that the Windows devs re-use the GUIDs.
         [guid]   $HnsNetworkId = "B95D0C5E-57D4-412B-B571-18A81A16E005"
         [guid]   $ParentID     = "21894F4E-9F9C-41B5-B8EF-87948943C15E"
         [guid]   $ChildID      = "28D2ABF3-7D0A-45E8-9954-62E2D24269A6"
         [string] $Flags        = 9
-        [string] $MacPoolStart = "00-15-5D-9B-F0-00"
-        [string] $MacPoolEnd   = "00-15-5D-9B-FF-FF"
-        [string] $MaxEndpoints = 1
+        # [string] $MacPoolStart = "00-15-5D-9B-F0-00"
+        # [string] $MacPoolEnd   = "00-15-5D-9B-FF-FF"
+        # [string] $MaxEndpoints = 1
         $ExtraEntries = @"
 
     "IsolateSwitch": true,
@@ -70,13 +73,16 @@ switch ($NetworkType) {
     }
     "Hyper-V" {
         [string] $HnsName      = "Default Switch"
+        # These GUID values are used consistently when Windows generates the Hyper-V network.
+        # I don't think there is anything magical about the values, but I am preserving
+        # them here is case there is some reason that the Windows devs re-use the GUIDs.
         [guid]   $HnsNetworkId = "C08CB7B8-9B3C-408E-8E30-5E16A3AEB444"
         [guid]   $ParentID     = "B81F1F65-3F5A-4789-962F-009DBC86F1C8"
         [guid]   $ChildID      = "2723DF08-8F13-4408-B2D9-F8AF6FE00592"
         [string] $Flags        = 11
-        [string] $MacPoolStart = "00-15-5D-17-30-00"
-        [string] $MacPoolEnd   = "00-15-5D-17-3F-FF"
-        [string] $MaxEndpoints = 0
+        # [string] $MacPoolStart = "00-15-5D-17-30-00"
+        # [string] $MacPoolEnd   = "00-15-5D-17-3F-FF"
+        # [string] $MaxEndpoints = 0
         $ExtraEntries = @"
 
     "SwitchName": "$HnsName",
@@ -99,33 +105,56 @@ switch ($NetworkType) {
 # $HnsNetworkConfig is the configuration block for the new HNS network for WSL.
 # Note:  For NAT, use Flags = 0 and Type = NAT.
 
+# Original values used by this script.  Biswaprio Nath advises that not all values are required.
+# $HnsNetworkConfig = @"
+# {
+#     "Name" : "$HnsName",
+#     "Flags": $Flags,
+#     "Type": "ICS",
+#     "IPv6": false,
+#     "MaxConcurrentEndpoints": $MaxEndpoints,
+#     "Subnets" : [
+#         {
+#             "ID" : "$ParentID",
+#             "ObjectType": 5,
+#             "AddressPrefix" : "$NetworkAddress",
+#             "GatewayAddress" : "$GatewayAddress",
+#             "IpSubnets" : [
+#                 {
+#                     "ID" : "$ChildID",
+#                     "Flags": 3,
+#                     "IpAddressPrefix": "$NetworkAddress",
+#                     "ObjectType": 6
+#                 }
+#             ]
+#         }
+#     ],
+#     "MacPools":  [
+#         {
+#             "EndMacAddress":  "$MacPoolEnd",
+#             "StartMacAddress":  "$MacPoolStart"
+#         }
+#     ],$ExtraEntries
+#     "DNSServerList" : "$GatewayAddress"
+# }
+# "@
+
 $HnsNetworkConfig = @"
 {
     "Name" : "$HnsName",
     "Flags": $Flags,
     "Type": "ICS",
-    "IPv6": false,
-    "MaxConcurrentEndpoints": $MaxEndpoints,
     "Subnets" : [
         {
             "ID" : "$ParentID",
-            "ObjectType": 5,
             "AddressPrefix" : "$NetworkAddress",
-            "GatewayAddress" : "$GatewayAddress",
             "IpSubnets" : [
                 {
                     "ID" : "$ChildID",
                     "Flags": 3,
-                    "IpAddressPrefix": "$NetworkAddress",
-                    "ObjectType": 6
+                    "IpAddressPrefix": "$NetworkAddress"
                 }
             ]
-        }
-    ],
-    "MacPools":  [
-        {
-            "EndMacAddress":  "$MacPoolEnd",
-            "StartMacAddress":  "$MacPoolStart"
         }
     ],$ExtraEntries
     "DNSServerList" : "$GatewayAddress"
@@ -148,13 +177,13 @@ if ($newAdapter) {
     # Out-ConsoleAndLog "Pausing while the adapter initializes..."
     # start-sleep -Seconds 5
     if ($newAdapter.Status -eq "Up") {
-        Out-ConsoleAndLog "$NetworkName adapter enabled."
+        Out-ConsoleAndLog "$NetworkType adapter enabled."
         $AddressArray = @()
         $AddressArray += Get-NetIPAddress -InterfaceIndex $newAdapter.InterfaceIndex
         if ($GatewayAddress -in ($AddressArray).IPAddress) {
-            Out-ConsoleAndLog "$NetworkName adapter has the intended IP Address."
+            Out-ConsoleAndLog "$NetworkType adapter has the intended IP Address."
         } else {
-            Out-ConsoleAndLog "$NetworkName adapter is not configured correctly."
+            Out-ConsoleAndLog "$NetworkType adapter is not configured correctly."
             exit 101
         }
     } else {
