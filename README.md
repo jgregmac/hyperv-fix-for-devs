@@ -65,7 +65,7 @@ repository contents, not just the Install-DeveloperFix.ps1 script.
 3. Open a PowerShell prompt in the directory with the script and run the following commands:
 
     ```powershell
-    # This script is not signed, so you need to set ExecutionPolicy to "RemoteSigned" or 
+    # This script is not signed, so you need to set ExecutionPolicy to "RemoteSigned" or
     # "Unrestricted" to run it, if you have not already done so.
     Set-ExecutionPolicy -ExecutionPolicy Unrestricted
 
@@ -75,9 +75,9 @@ repository contents, not just the Install-DeveloperFix.ps1 script.
 
     # Then just run the script.  The parameters are optional and will default to:
     # WSL, 192.168.100.1, and 192.168.100.0/24, respectively.
-    .\Install-DeterministicNetwork.ps1 [-NetworkName [ WSL | Hyper-V ]] [-GatewayAddress "IP_ADDRESS" ] [-NetworkAddress "NetworkAddressCIDR"]
+    .\Install-DeterministicNetwork.ps1 [-NetworkType [ WSL | Hyper-V ]] [-GatewayAddress "IP_ADDRESS" ] [-NetworkAddress "NetworkAddressCIDR"]
 
-    # (Optionally, you can revert to your original Execution Policy after the installation.) 
+    # (Optionally, you can revert to your original Execution Policy after the installation.)
     Set-ExecutionPolicy -ExecutionPolicy Restricted
     # Note: ExecutionPolicies are not true security boundaries.  Most "serious" PowerShell
     # users will find that leaving the execution policy set to "Restricted" is impractcal at best.
@@ -88,9 +88,14 @@ Help is available though the usual PowerShell syntax:
 ```powershell
 # Simple Help:
 .\Install-DeterministicNetwork.ps1 -?
+or
+Get-Help .\Install-DeterministicNetwork.ps1
+
+# Detailed Help:
+Get-Help .\Install-DeterministicNetwork.ps1 -detailed
 
 # Full Help:
-Get-Help .\Install-DeterministicNetwork.ps1 --Full
+Get-Help .\Install-DeterministicNetwork.ps1 -full
 ```
 
 ## Background information

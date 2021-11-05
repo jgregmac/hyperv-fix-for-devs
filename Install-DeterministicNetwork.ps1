@@ -5,7 +5,7 @@
 .DESCRIPTION
     Linux developers who choose (or are forced) to use Windows will benefit greatly
     from the use the the Windows Subsystem for Linux, and the Hyper-V virtualization
-    engine.  Unfortunately, these tools often run into problems with corporate use of 
+    engine.  Unfortunately, these tools often run into problems with corporate use of
     private network ranges, especially when the developer using the system roams
     between remote and on-site work, or needs a VPN connection.
 
@@ -17,21 +17,21 @@
     fixing this common problem.
 
     This tool will install a Loopback network adapter and startup and shutdown scripts
-    that are designed to "trick" the Hyper-V (and WSL) network collision avoidance 
+    that are designed to "trick" the Hyper-V (and WSL) network collision avoidance
     algorithm into using a network range of our choosing that we know will not collide
     with our corporate internal private networks.
 #>
 [CmdletBinding()]
 param (
     # Name of the dummy adapter that will be created.
-    # Only testing this for WSL at present... will need to re-install Hyper-V to validate:
+    # Only testing this for WSL at present... will need to re-install Hyper-V to validate.
     [Parameter()]
     [ValidateSet("WSL", "Hyper-V")]
     [string]
     $NetworkType = "WSL",
 
     <#
-      The IP address to be used on the interface created for WSL/Hyper-V.  Thi will serve
+      The IP address to be used on the interface created for WSL/Hyper-V.  This will serve
       as the gateway address for the new virtual network. Examples:
       - 192.168.100.1 (Default) - A class C private network that is unlikely to collide with most home networks.
       - 172.16.100.1 - A class B private network, which might collide with a corporate network.
@@ -50,7 +50,7 @@ param (
     [string]
     $NetworkAddress = "192.168.100.0/24",
 
-    <# Target directory for the startup/shutdown scripts.  Default is a "$NetworkType-Network-Fix" 
+    <# Target directory for the startup/shutdown scripts.  Default is "$NetworkType-Network-Fix" 
     directory under your user profile. #>
     [Parameter()]
     [string]
@@ -73,12 +73,12 @@ Out-ConsoleAndLog "These messages will be logged to: $GlobalLog"
 # Both the user name (in DomainName\UserName) and SID are required:
 $UserName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 $UserSID = ([System.Security.Principal.WindowsIdentity]::GetCurrent()).User.Value
-Out-ConsoleAndLog "Generated Tasks will be run as $UserName with SID: $UserSID" 
+Out-ConsoleAndLog "Generated Tasks will be run as $UserName with SID: $UserSID"
 
 #region Copy scripts to current user profile
-    Out-ConsoleAndLog "Scripts will be copied to directory: $ScriptDestination" 
+    Out-ConsoleAndLog "Scripts will be copied to directory: $ScriptDestination"
     if (-not (Test-Path $ScriptDestination )) {
-        Out-ConsoleAndLog "Creating script directory..." 
+        Out-ConsoleAndLog "Creating script directory..."
         New-Item -ItemType Directory -Path $ScriptDestination -ea Stop -Force | Out-Null
     }
     #Write-Host "CurrentPath is: $CurrentPath"
@@ -103,7 +103,7 @@ Out-ConsoleAndLog "Generated Tasks will be run as $UserName with SID: $UserSID"
     Get-ChildItem -Path $TaskSource | ForEach-Object {
         #Write-Host ("Working on source file: " + $_.FullName);
         $Leaf = $_.Name;
-        Get-Content $_.FullName | 
+        Get-Content $_.FullName |
             ForEach-Object { $_ -replace "USER_ID", $UserName } |
             ForEach-Object { $_ -replace "USER_SID", $UserSID } |
             ForEach-Object { $_ -replace "STARTUP_SCRIPT_PATH", $ScriptDestination } |
