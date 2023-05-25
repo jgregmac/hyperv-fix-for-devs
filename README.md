@@ -1,4 +1,21 @@
-# WSL2 Network Fix for Linux Developers
+# WSL2 Network Fix for Linux Developers (Deprecated)
+
+**NOTE**: The scripts contained in this repository no longer are needed on more recent
+versions of WSL on Windows 10 and 11, running WSL version 1.2.5 or later. On these
+newer versions of WSL, the Linux VM IP address range can be controlled using the
+following Windows registry keys:
+
+> HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Lxss\NatNetwork
+> HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Lxss\NatGatewayIpAddress
+
+Just set your preferred network range in CIDR format (i.e. 192.168.10.0/24) and set a
+compatible gateway address (i.e. 192.168.10.1), then reboot your system.
+
+Hopefully MS will expose a control for this in the wsl.exe command line on in the system
+settings in the near future.
+
+This instructions below still work, but given the simplicity of the registry-based
+solution, I strongly recommend migrating to that solution instead.
 
 Normally, Hyper-V/WSL uses a collision-avoidance algorithm when assigning private
 network ranges to the virtual networks that it creates for use by these services.
@@ -18,7 +35,7 @@ a scheduled task to register your preferred deterministic network ranges each ti
 login to Windows, and the script `Register-DeterministicNetwork.ps1`, which can be run
 on-demand.
 
-- [WSL2 Network Fix for Linux Developers](#wsl2-network-fix-for-linux-developers)
+- [WSL2 Network Fix for Linux Developers (Deprecated)](#wsl2-network-fix-for-linux-developers-deprecated)
   - [Credit Where It Is Due](#credit-where-it-is-due)
   - [Alternatives](#alternatives)
   - [Prerequisites](#prerequisites)
