@@ -120,7 +120,7 @@ Get-Help .\Install-DeterministicNetwork.ps1 -full
 ### Hyper-V?  WSL?  What do I do with these?
 
 Linux developers who choose (or are forced) to use Windows will benefit greatly
-from the use the the Windows Subsystem for Linux, and the Hyper-V virtualization
+from the use of the Windows Subsystem for Linux, and the Hyper-V virtualization
 engine.  These are powerful tools that enable developers (and other IT pros
 such as systems administrators and analysts) to run Linux operating systems, tools, and
 containers quickly and efficiently, while still having access to the broad base of

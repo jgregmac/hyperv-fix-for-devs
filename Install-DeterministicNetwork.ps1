@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     Linux developers who choose (or are forced) to use Windows will benefit greatly
-    from the use the the Windows Subsystem for Linux, and the Hyper-V virtualization
+    from the use of the Windows Subsystem for Linux, and the Hyper-V virtualization
     engine.  Unfortunately, these tools often run into problems with corporate use of
     private network ranges, especially when the developer using the system roams
     between remote and on-site work, or needs a VPN connection.
